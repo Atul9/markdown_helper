@@ -343,53 +343,47 @@ EOT
     # end
     # assert_circular_exception(expected_inclusions, e)
 
-    # # Test includee not found.
-    # test_info = IncludeInfo.new(
-    #                            file_stem = 'includer_0',
-    #                            file_type = 'md',
-    #                            treatment = :markdown,
-    # )
-    # create_template(test_info)
-    # expected_inclusions = MarkdownHelper::Inclusions.new
-    # # The outer inclusion.
-    # includer_file_path = File.join(
-    #     TEST_DIR_PATH,
-    #     'include/templates/includer_0_markdown.md'
-    # )
-    # cited_includee_file_path = '../includes/includer_0.md'
-    # inclusion = MarkdownHelper::Inclusion.new(
-    #     include_description = "@[:markdown](#{cited_includee_file_path})",
-    #     includer_file_path,
-    #     includer_line_number = 1,
-    #     cited_includee_file_path,
-    #     treatment
-    # )
-    # expected_inclusions.inclusions.push(inclusion)
-    # # The three nested inclusions.
-    # [
-    #     [0, 1],
-    #     [1, 2],
-    #     [2, 3],
-    # ].each do |indexes|
-    #   includer_index, includee_index = *indexes
-    #   includer_file_name = "includer_#{includer_index}.md"
-    #   includee_file_name = "includer_#{includee_index}.md"
-    #   includer_file_path = File.join(
-    #       TEST_DIR_PATH,
-    #       "include/templates/../includes/#{includer_file_name}"
-    #   )
-    #   inclusion = MarkdownHelper::Inclusion.new(
-    #       include_description = "@[:markdown](#{includee_file_name})",
-    #       includer_file_path,
-    #       includer_line_number = 1,
-    #       cited_includee_file_path = includee_file_name,
-    #       treatment
-    #   )
-    #   expected_inclusions.inclusions.push(inclusion)
-    # end
-    # e = assert_raises(Exception) do
-    #   common_test(MarkdownHelper.new, test_info)
-    # end
+    # Test includee not found.
+    test_info = IncludeInfo.new(
+                               file_stem = 'includer_0',
+                               file_type = 'md',
+                               treatment = :markdown,
+    )
+    create_template(test_info)
+    expected_inclusions = []
+    # The outer inclusion.
+    templste_file_path = File.join(
+        TEST_DIR_PATH,
+        'include/templates/includer_0_markdown.md'
+    )
+    cited_includee_file_path = '../includes/includer_0.md'
+    inclusion = MarkdownHelper::Inclusion.new(
+                                             template_file_path: templste_file_path,
+                                             markdown_file_path: nil,
+    )
+    expected_inclusions.push(inclusion)
+    # The three nested inclusions.
+    [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+    ].each do |indexes|
+      includer_index, includee_index = *indexes
+      includer_file_name = "includer_#{includer_index}.md"
+      includee_file_name = "includer_#{includee_index}.md"
+      includer_file_path = File.join(
+          TEST_DIR_PATH,
+          "include/templates/../includes/#{includer_file_name}"
+      )
+      inclusion = MarkdownHelper::Inclusion.new(
+                                               template_file_path: includer_file_path,
+                                               markdown_file_path: nil,
+      )
+      expected_inclusions.push(inclusion)
+    end
+    e = assert_raises(MarkdownHelper::UnreadableTemplateError) do
+      common_test(MarkdownHelper.new, test_info)
+    end
     # assert_includee_missing_exception(expected_inclusions, e)
 
   end
