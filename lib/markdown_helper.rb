@@ -59,10 +59,22 @@ class MarkdownHelper
 
   class UnreadableTemplateError < MarkdownHelperError
     attr_accessor :message
-    def initialize(file_path)
+    def initialize(template_file_path, includees)
+      includees.each do |includee|
+        [
+            :inclusion,
+            :directive,
+            :line_index,
+            :cited_file_path,
+            :file_path_in_project,
+            :treatment,
+        ].each do |m|
+          p [m, includee.send(m)]
+        end
+      end
       self.message = <<EOT
 Could not read template file:
-#{file_path}
+#{template_file_path}
 EOT
     end
   end
@@ -174,6 +186,7 @@ EOT
       inclusion = Inclusion.new(
           template_file_path: template_file_path,
           markdown_file_path: includee.inclusion.markdown_file_path,
+          includees: self.includees,
           markdown_lines: includee.inclusion.markdown_lines)
       markdown_lines.push(MarkdownHelper.comment(" >>>>>> BEGIN INCLUDED FILE (#{treatment}): SOURCE #{includee.file_path_in_project} ")) unless pristine
       include_files(inclusion)
@@ -249,18 +262,20 @@ EOT
     attr_accessor \
       :template_file_path,
       :markdown_file_path,
+      :includees,
       :markdown_lines,
       :input_lines,
       :output_lines,
       :page_toc_title,
       :page_toc_line
 
-    def initialize(template_file_path:, markdown_file_path:, markdown_lines: [])
+    def initialize(template_file_path:, markdown_file_path:, includees: [], markdown_lines: [])
       self.template_file_path = template_file_path
       self.markdown_file_path = markdown_file_path
+      self.includees = includees
       self.markdown_lines  = markdown_lines
       unless File.readable?(template_file_path)
-        raise UnreadableTemplateError.new(template_file_path)
+        raise UnreadableTemplateError.new(template_file_path, includees)
       end
       self.input_lines = File.open(template_file_path, 'r').readlines
       self.output_lines = []
