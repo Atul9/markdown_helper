@@ -5,7 +5,7 @@ class MarkdownHelper
 
   INCLUDE_REGEXP = /^@\[([^\[]+)\]\(([^)]+)\)$/
 
-  attr_accessor :pristine, :inclusions
+  attr_accessor :pristine, :includees
 
   def initialize(options = {})
     # Confirm that we're in a git project.
@@ -25,7 +25,7 @@ class MarkdownHelper
       setter_method = "#{method}="
       send(setter_method, value)
       merged_options.delete(method)
-      self.inclusions = []
+      self.includees = []
     end
   end
 
@@ -88,14 +88,12 @@ EOT
   private
 
   def include_files(inclusion)
-    inclusions.push(inclusion)
     markdown_lines = inclusion.markdown_lines
     # First pass:  include only markdown; ignore code blocks, etc.
     # This is because a code block containing # would confuse page TOC.
     do_first_pass(inclusion, markdown_lines)
     # Second pass:  review the markdown and include everything.
     do_second_pass(inclusion, markdown_lines)
-    inclusions.pop
   end
 
   def do_first_pass(inclusion, markdown_lines)
@@ -168,6 +166,7 @@ EOT
   end
 
   def include_markdown(includee, markdown_lines)
+    self.includees.push(includee)
     # Go to template directory, to make inclusion relative file path easy to work with.
     Dir.chdir(File.dirname(includee.inclusion.template_file_path)) do
       template_file_path = includee.cited_file_path
@@ -180,10 +179,11 @@ EOT
       include_files(inclusion)
       markdown_lines.push(MarkdownHelper.comment(" <<<<<< END INCLUDED FILE (#{treatment}): SOURCE #{includee.file_path_in_project} ")) unless pristine
     end
+    self.includees.pop
   end
 
   def get_page_toc_inclusion(inclusion, page_toc_inclusion, match_data, input_line, markdown_lines)
-    unless inclusions.size == 1
+    unless includees.size == 0
       message = 'Page TOC must be in outermost markdown file.'
       raise MisplacedPageTocError.new(message)
     end
