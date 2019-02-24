@@ -59,23 +59,29 @@ class MarkdownHelper
 
   class UnreadableTemplateError < MarkdownHelperError
     attr_accessor :message
-    def initialize(template_file_path, includees)
-      includees.each do |includee|
-        [
-            :inclusion,
-            :directive,
-            :line_index,
-            :cited_file_path,
-            :file_path_in_project,
-            :treatment,
-        ].each do |m|
-          p [m, includee.send(m)]
-        end
-      end
+    def initialize(template_file_path)
       self.message = <<EOT
 Could not read template file:
 #{template_file_path}
 EOT
+    end
+  end
+
+  class UnreadableIncludeeError < MarkdownHelperError
+    attr_accessor :message
+    def initialize(template_file_path, includees)
+      lines = []
+      lines.push("Could not read includee file: #{includees.last.file_path_in_project}")
+      lines.push('Inclusion backtrace, innermost first:')
+      i = includees.size
+      includees.reverse.each do |includee|
+        i -= 1
+        lines.push("Level #{i}:")
+        lines.push("  Site: #{includee.inclusion.template_path_in_project}:#{includee.line_index}")
+        lines.push("  Directive: #{includee.directive}")
+      end
+      lines.push('')
+      self.message = lines.join("\n")
     end
   end
 
@@ -261,6 +267,7 @@ EOT
 
     attr_accessor \
       :template_file_path,
+      :template_path_in_project,
       :markdown_file_path,
       :includees,
       :markdown_lines,
@@ -271,11 +278,16 @@ EOT
 
     def initialize(template_file_path:, markdown_file_path:, includees: [], markdown_lines: [])
       self.template_file_path = template_file_path
+      self.template_path_in_project = MarkdownHelper.path_in_project(File.absolute_path(template_file_path))
       self.markdown_file_path = markdown_file_path
       self.includees = includees
       self.markdown_lines  = markdown_lines
       unless File.readable?(template_file_path)
-        raise UnreadableTemplateError.new(template_file_path, includees)
+        if includees.empty?
+          raise UnreadableTemplateError.new(template_file_path)
+        else
+          raise UnreadableIncludeeError.new(template_file_path, includees)
+        end
       end
       self.input_lines = File.open(template_file_path, 'r').readlines
       self.output_lines = []

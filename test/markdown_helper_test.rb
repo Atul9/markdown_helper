@@ -387,11 +387,26 @@ EOT
       )
       expected_inclusions.push(inclusion)
     end
-    e = assert_raises(MarkdownHelper::UnreadableTemplateError) do
+    e = assert_raises(MarkdownHelper::UnreadableIncludeeError) do
       common_test(MarkdownHelper.new, test_info)
     end
-    # assert_includee_missing_exception(expected_inclusions, e)
-
+    expected_message = <<EOT
+Could not read includee file: test/include/includes/includer_3.md
+Inclusion backtrace, innermost first:
+Level 3:
+  Site: test/include/includes/includer_2.md:5
+  Directive: @[:markdown](includer_3.md)
+Level 2:
+  Site: test/include/includes/includer_1.md:3
+  Directive: @[:markdown](includer_2.md)
+Level 1:
+  Site: test/include/includes/includer_0.md:1
+  Directive: @[:markdown](includer_1.md)
+Level 0:
+  Site: test/include/templates/includer_0_markdown.md:1
+  Directive: @[:markdown](../includes/includer_0.md)
+EOT
+    assert_equal(expected_message, e.message)
   end
 
   # Don't call this 'test_interface' (without the leading underscroe),
