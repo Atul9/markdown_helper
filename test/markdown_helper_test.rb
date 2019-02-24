@@ -190,9 +190,11 @@ class MarkdownHelperTest < Minitest::Test
         :md,
         :page_toc
     )
-    assert_raises(MarkdownHelper::InvalidTocTitleError) do
+    e = assert_raises(MarkdownHelper::InvalidTocTitleError) do
       common_test(MarkdownHelper.new({:pristine => true}), test_info)
     end
+    expected_message = 'TOC title must be a valid markdown header, not No hashes'
+    assert_equal(expected_message, e.message)
 
     # Test multiple page TOC.
     test_info = IncludeInfo.new(
@@ -200,9 +202,11 @@ class MarkdownHelperTest < Minitest::Test
         :md,
         :page_toc,
         )
-    assert_raises(MarkdownHelper::MultiplePageTocError) do
+    e = assert_raises(MarkdownHelper::MultiplePageTocError) do
       common_test(MarkdownHelper.new({:pristine => true}), test_info)
     end
+    expected_message = 'Only one page TOC allowed.'
+    assert_equal(expected_message, e.message)
 
     # Test misplaced page TOC.
     test_info = IncludeInfo.new(
@@ -210,9 +214,11 @@ class MarkdownHelperTest < Minitest::Test
         :md,
         :page_toc,
         )
-    assert_raises(MarkdownHelper::MisplacedPageTocError) do
+    e = assert_raises(MarkdownHelper::MisplacedPageTocError) do
       common_test(MarkdownHelper.new({:pristine => true}), test_info)
     end
+    expected_message = 'Page TOC must be in outermost markdown file.'
+    assert_equal(expected_message, e.message)
 
     # Test treatment as comment.
     test_info = IncludeInfo.new(
