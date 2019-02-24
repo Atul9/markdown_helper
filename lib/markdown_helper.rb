@@ -70,18 +70,16 @@ EOT
   class UnreadableIncludeeError < MarkdownHelperError
     attr_accessor :message
     def initialize(template_file_path, includees)
-      lines = []
-      lines.push("Could not read includee file: #{includees.last.file_path_in_project}")
-      lines.push('Inclusion backtrace, innermost first:')
-      i = includees.size
-      includees.reverse.each do |includee|
-        i -= 1
-        lines.push("Level #{i}:")
-        lines.push("  Site: #{includee.inclusion.template_path_in_project}:#{includee.line_index}")
-        lines.push("  Directive: #{includee.directive}")
-      end
-      lines.push('')
-      self.message = lines.join("\n")
+      desc = "Could not read includee file: #{includees.last.file_path_in_project}\n"
+      self.message = desc + MarkdownHelper.backtrace(includees)
+    end
+  end
+
+  class CircularIncludeError < MarkdownHelperError
+    attr_accessor :message
+    def initialize(template_file_path, includees)
+      desc = "Circular inclusion: #{includees.last.file_path_in_project}\n"
+      self.message = desc + MarkdownHelper.backtrace(includees)
     end
   end
 
@@ -184,6 +182,11 @@ EOT
   end
 
   def include_markdown(includee, markdown_lines)
+    included_file_paths = includees.collect { |x| x.file_path_in_project}
+    if included_file_paths.include?(includee.file_path_in_project)
+      self.includees.push(includee)
+      raise CircularIncludeError.new(includee.file_path_in_project, includees)
+    end
     self.includees.push(includee)
     # Go to template directory, to make inclusion relative file path easy to work with.
     Dir.chdir(File.dirname(includee.inclusion.template_file_path)) do
@@ -261,6 +264,20 @@ EOT
 
   def self.comment(text)
     "<!--#{text}-->\n"
+  end
+
+  def self.backtrace(includees)
+    lines = []
+    lines.push('Inclusion backtrace, innermost first:')
+    i = includees.size
+    includees.reverse.each do |includee|
+      i -= 1
+      lines.push("Level #{i}:")
+      lines.push("  Site: #{includee.inclusion.template_path_in_project}:#{includee.line_index}")
+      lines.push("  Directive: #{includee.directive}")
+    end
+    lines.push('')
+    lines.join("\n")
   end
 
   class Inclusion
