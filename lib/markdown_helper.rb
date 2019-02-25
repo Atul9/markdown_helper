@@ -80,7 +80,7 @@ EOT
     def initialize(template_file_path, includees)
       desc = "Circular inclusion: #{includees.last.file_path_in_project}\n"
       self.message = desc + MarkdownHelper.backtrace(includees)
-    end
+      end
   end
 
   class UnwritableMarkdownError < MarkdownHelperError
@@ -185,7 +185,9 @@ EOT
     included_file_paths = includees.collect { |x| x.file_path_in_project}
     if included_file_paths.include?(includee.file_path_in_project)
       self.includees.push(includee)
-      raise CircularIncludeError.new(includee.file_path_in_project, includees)
+      e =  CircularIncludeError.new(includee.file_path_in_project, includees)
+      e.set_backtrace([])
+      raise e
     end
     self.includees.push(includee)
     # Go to template directory, to make inclusion relative file path easy to work with.
@@ -303,7 +305,9 @@ EOT
         if includees.empty?
           raise UnreadableTemplateError.new(template_file_path)
         else
-          raise UnreadableIncludeeError.new(template_file_path, includees)
+          e = UnreadableIncludeeError.new(template_file_path, includees)
+          e.set_backtrace([])
+          raise e
         end
       end
       self.input_lines = File.open(template_file_path, 'r').readlines
